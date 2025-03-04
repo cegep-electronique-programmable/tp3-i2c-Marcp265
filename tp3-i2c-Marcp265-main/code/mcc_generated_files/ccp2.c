@@ -1,24 +1,24 @@
 /**
-  @Generated PIC10 / PIC12 / PIC16 / PIC18 MCUs Header File
+  CCP2 Generated Driver File
 
-  @Company:
+  @Company
     Microchip Technology Inc.
 
-  @File Name:
-    mcc.h
+  @File Name
+    ccp2.c
 
-  @Summary:
-    This is the mcc.h file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
+  @Summary
+    This is the generated driver implementation file for the CCP2 driver using PIC10 / PIC12 / PIC16 / PIC18 MCUs
 
-  @Description:
-    This header file provides implementations for driver APIs for all modules selected in the GUI.
+  @Description
+    This source file provides implementations for driver APIs for CCP2.
     Generation Information :
         Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.81.8
         Device            :  PIC18F25K80
-        Driver Version    :  2.00
+        Driver Version    :  2.0.3
     The generated drivers are tested against the following:
-        Compiler          :  XC8 2.36 and above or later
-        MPLAB             :  MPLAB X 6.00
+        Compiler          :  XC8 2.36 and above
+         MPLAB 	          :  MPLAB X 6.00
 */
 
 /*
@@ -44,49 +44,68 @@
     SOFTWARE.
 */
 
-#ifndef MCC_H
-#define	MCC_H
+/**
+  Section: Included Files
+*/
+
 #include <xc.h>
-#include "device_config.h"
-#include "pin_manager.h"
-#include <stdint.h>
-#include <stdbool.h>
-#include <conio.h>
-#include "interrupt_manager.h"
-#include "i2c_master.h"
 #include "ccp2.h"
-#include "tmr1.h"
-#include "eusart1.h"
 
-
+static void (*CCP2_CallBack)(uint16_t);
 
 /**
- * @Param
-    none
- * @Returns
-    none
- * @Description
-    Initializes the device to the default states configured in the
- *                  MCC GUI
- * @Example
-    SYSTEM_Initialize(void);
- */
-void SYSTEM_Initialize(void);
+  Section: Capture Module APIs:
+*/
 
-/**
- * @Param
-    none
- * @Returns
-    none
- * @Description
-    Initializes the oscillator to the default states configured in the
- *                  MCC GUI
- * @Example
-    OSCILLATOR_Initialize(void);
- */
-void OSCILLATOR_Initialize(void);
+static void CCP2_DefaultCallBack(uint16_t capturedValue)
+{
+    // Add your code here
+}
 
-#endif	/* MCC_H */
+void CCP2_Initialize(void)
+{
+    // Set the CCP2 to the options selected in the User Interface
+	
+	// CCP2M Falling edge; DC2B 0; 
+	CCP2CON = 0x04;    
+	
+	// CCPR2L 0; 
+	CCPR2L = 0x00;    
+	
+	// CCPR2H 0; 
+	CCPR2H = 0x00;    
+    
+    // Set the default call back function for CCP2
+    CCP2_SetCallBack(CCP2_DefaultCallBack);
+
+	// Selecting Timer 1
+	CCPTMRSbits.C2TSEL = 0x0;
+    
+    // Clear the CCP2 interrupt flag
+    PIR3bits.CCP2IF = 0;
+
+    // Enable the CCP2 interrupt
+    PIE3bits.CCP2IE = 1;
+}
+
+void CCP2_CaptureISR(void)
+{
+    CCP2_PERIOD_REG_T module;
+
+    // Clear the CCP2 interrupt flag
+    PIR3bits.CCP2IF = 0;
+    
+    // Copy captured value.
+    module.ccpr2l = CCPR2L;
+    module.ccpr2h = CCPR2H;
+    
+    // Return 16bit captured value
+    CCP2_CallBack(module.ccpr2_16Bit);
+}
+
+void CCP2_SetCallBack(void (*customCallBack)(uint16_t)){
+    CCP2_CallBack = customCallBack;
+}
 /**
  End of File
 */
